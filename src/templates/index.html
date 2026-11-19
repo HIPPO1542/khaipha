@@ -140,16 +140,12 @@
         </p>
       </div>
 
-      <!-- Quick Switcher Buttons -->
-      <div class="flex items-center gap-2 bg-white/10 p-1.5 rounded-xl border border-white/10 backdrop-blur-md self-start md:self-auto">
-        <a href="/?model=fpgrowth" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 {% if model == 'fpgrowth' %}bg-amber-400 text-slate-950 shadow-md{% else %}text-white/80 hover:text-white{% endif %}">
-          <span>⚡ FP-Growth</span>
-          <span class="text-[10px] opacity-75 font-mono">0.78s</span>
-        </a>
-        <a href="/?model=apriori" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 {% if model == 'apriori' %}bg-amber-400 text-slate-950 shadow-md{% else %}text-white/80 hover:text-white{% endif %}">
-          <span>🔍 Apriori</span>
-          <span class="text-[10px] opacity-75 font-mono">1.03s</span>
-        </a>
+      <!-- Action: Link to Live Race -->
+      <div class="flex items-center gap-2 self-start md:self-auto">
+        <button onclick="switchTab('benchmark'); scrollToRace();" class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-amber-400 text-slate-950 hover:bg-amber-300 shadow-md active:scale-95">
+          <i class="fa-solid fa-flag-checkered text-slate-900"></i>
+          <span>Xem Đua Tốc Độ Thuật Toán ➔</span>
+        </button>
       </div>
     </div>
 
@@ -372,6 +368,143 @@
         <span class="text-2xl font-black text-amber-600">{{ bench.fpgrowth.rules }}</span>
         <span class="text-[11px] text-slate-500 block mt-1">Thỏa mãn Conf &ge; 30%, Lift &gt; 1</span>
       </div>
+    </div>
+
+    <!-- ĐẤU TRƯỜNG SO SÁNH TỐC ĐỘ THỰC TẾ (LIVE ALGORITHM SPEED RACE) -->
+    <div id="sectionSpeedRace" class="bg-gradient-to-br from-slate-950 via-racing-900 to-slate-900 border border-racing-700/50 rounded-3xl p-6 text-white shadow-xl space-y-6">
+      
+      <!-- Section Header -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-semibold mb-2 border border-amber-400/30">
+            <i class="fa-solid fa-stopwatch animate-pulse"></i>
+            <span>Đấu trường trực nghiệm thời gian thực</span>
+          </div>
+          <h3 class="font-serif text-xl sm:text-2xl font-bold text-white flex items-center gap-2.5">
+            <span>🏁 Chạy Đua Tốc Độ: Apriori vs FP-Growth</span>
+          </h3>
+          <p class="text-xs text-slate-300 mt-1 max-w-2xl">
+            Tận mắt chứng kiến sự chênh lệch hiệu năng khi quy mô tập ứng viên bùng nổ. Chọn ngưỡng Support và nhấn <strong>Bắt Đầu Đua</strong> để theo dõi!
+          </p>
+        </div>
+
+        <!-- Controls: Support selector & Start button -->
+        <div class="flex flex-wrap items-center gap-3 bg-white/10 p-2 rounded-2xl border border-white/10 backdrop-blur-md">
+          <div class="flex items-center gap-1.5 text-xs font-medium text-slate-200">
+            <span>Ngưỡng Support:</span>
+            <select id="raceSupportSelect" onchange="resetRaceView()" class="bg-slate-800 text-amber-300 font-bold text-xs rounded-xl px-2.5 py-1.5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400">
+              <option value="0.02">2.0% (Tập nhỏ - Khởi động)</option>
+              <option value="0.01" selected>1.0% (Tiêu chuẩn - 3.949 luật)</option>
+              <option value="0.005">0.5% (STRESS TEST - 49.519 tập mục bùng nổ 🔥)</option>
+            </select>
+          </div>
+
+          <button id="btnStartRace" onclick="startLiveRace()" class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md active:scale-95">
+            <i class="fa-solid fa-play"></i>
+            <span>Bắt Đầu Đua</span>
+          </button>
+
+          <button onclick="resetRaceView()" class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all" title="Đặt lại">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hai làn đua (Race Tracks) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        
+        <!-- Track 1: FP-Growth -->
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3 relative overflow-hidden backdrop-blur-sm">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-sm shadow-md">
+                ⚡
+              </div>
+              <div>
+                <h4 class="font-bold text-white text-sm">FP-Growth</h4>
+                <p class="text-[10px] text-amber-300 font-mono">Cấu trúc cây FP-Tree • Không sinh ứng viên</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span id="fpgrowthTimer" class="font-mono text-xl font-black text-amber-400">0.00s</span>
+              <span id="fpgrowthStatus" class="block text-[10px] text-slate-400">Sẵn sàng</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full bg-slate-800/80 rounded-full h-3 overflow-hidden p-0.5 border border-white/10">
+            <div id="fpgrowthBar" class="bg-gradient-to-r from-amber-500 to-amber-300 h-full rounded-full transition-all duration-100 ease-out" style="width: 0%"></div>
+          </div>
+
+          <!-- Step logs -->
+          <div class="bg-slate-950/60 rounded-xl p-2.5 border border-white/5 text-[11px] space-y-1 font-mono text-slate-300 min-h-[72px]" id="fpgrowthSteps">
+            <div class="text-slate-400">→ Nhấn "Bắt Đầu Đua" để xem tiến trình thực thi trực tiếp...</div>
+          </div>
+        </div>
+
+        <!-- Track 2: Apriori -->
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3 relative overflow-hidden backdrop-blur-sm">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center font-bold text-sm shadow-md">
+                🔍
+              </div>
+              <div>
+                <h4 class="font-bold text-white text-sm">Apriori</h4>
+                <p class="text-[10px] text-indigo-300 font-mono">Duyệt BFS theo tầng • Quét CSDL k lần</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span id="aprioriTimer" class="font-mono text-xl font-black text-indigo-300">0.00s</span>
+              <span id="aprioriStatus" class="block text-[10px] text-slate-400">Sẵn sàng</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full bg-slate-800/80 rounded-full h-3 overflow-hidden p-0.5 border border-white/10">
+            <div id="aprioriBar" class="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full rounded-full transition-all duration-100 ease-out" style="width: 0%"></div>
+          </div>
+
+          <!-- Step logs -->
+          <div class="bg-slate-950/60 rounded-xl p-2.5 border border-white/5 text-[11px] space-y-1 font-mono text-slate-300 min-h-[72px]" id="aprioriSteps">
+            <div class="text-slate-400">→ Nhấn "Bắt Đầu Đua" để xem tiến trình thực thi trực tiếp...</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Kết Quả & Giải Thích Bản Chất (Race Summary & Insight) -->
+      <div id="raceResultBox" class="hidden bg-white/10 border border-white/15 rounded-2xl p-4 text-xs space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🏆</span>
+            <div>
+              <span class="font-bold text-white text-sm" id="raceWinnerText">FP-Growth hoàn thành nhanh hơn!</span>
+              <p class="text-slate-300 text-[11px]" id="raceSpeedupText">Tốc độ vượt trội: Nhanh hơn 5.62 lần ở mức Support 0.5%</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 text-[11px]">
+            <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold" id="raceStatRules"></span>
+            <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold" id="raceStatSets"></span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-white/10 text-[11px] text-slate-300">
+          <div class="bg-slate-900/60 p-2.5 rounded-xl border border-white/5">
+            <strong class="text-amber-300 block mb-0.5">1. Tại sao dùng Web thấy quá nhanh?</strong>
+            Khi thao tác chọn hàng, Web tra cứu từ kết quả đã khai phá sẵn (cache), chỉ mất <strong>0.001 giây</strong> nên bạn cảm giác tức thì.
+          </div>
+          <div class="bg-slate-900/60 p-2.5 rounded-xl border border-white/5">
+            <strong class="text-amber-300 block mb-0.5">2. Điểm nghẽn cốt tử của Apriori:</strong>
+            Apriori phải sinh tổ hợp ứng viên Ck (tại 0.5% có hơn 49.000 tập) và quét lại toàn bộ CSDL 12.851 dòng qua nhiều vòng, mất tới <strong>55.14 giây</strong>!
+          </div>
+          <div class="bg-slate-900/60 p-2.5 rounded-xl border border-white/5">
+            <strong class="text-amber-300 block mb-0.5">3. Ưu thế vượt trội của FP-Growth:</strong>
+            FP-Growth nén toàn bộ giao dịch vào cây FP-Tree trong RAM, chỉ quét CSDL đúng <strong>2 lần</strong> và giải bằng thuật toán đệ quy DFS chỉ mất <strong>9.81 giây</strong>!
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- 3 Interactive Charts & Multi-threshold Support Evaluation -->
@@ -1214,6 +1347,176 @@
         btn.disabled = false;
         btn.innerHTML = originalText;
       }
+    }
+
+    // ==========================================
+    // ĐẤU TRƯỜNG SO SÁNH TỐC ĐỘ THỰC TẾ (LIVE RACE)
+    // ==========================================
+    let raceInterval = null;
+    let raceRunning = false;
+
+    // Dữ liệu đo đạc thực nghiệm chuẩn từ benchmark.json (12.851 giỏ hàng UCI)
+    const BENCHMARK_DATA = {
+      "0.02": {
+        apriori_time: 0.5794,
+        fpgrowth_time: 0.8785,
+        speedup: "0.66x",
+        rules: 650,
+        itemsets: 500,
+        note: "Support 2.0% (Tập nhỏ): Cả 2 đều rất nhanh (<1s) do tập ứng viên ít."
+      },
+      "0.01": {
+        apriori_time: 2.1024,
+        fpgrowth_time: 2.7313,
+        speedup: "0.77x",
+        rules: 5133,
+        itemsets: 3949,
+        note: "Support 1.0% (Chuẩn): Tìm thấy 3.949 tập phổ biến, cả 2 hoàn thành trong ~2-3s."
+      },
+      "0.005": {
+        apriori_time: 55.1434,
+        fpgrowth_time: 9.8152,
+        speedup: "5.62x",
+        rules: 64374,
+        itemsets: 49519,
+        note: "Support 0.5% (STRESS TEST): Tập phổ biến bùng nổ 49.519 tập! Apriori mất 55.14s trong khi FP-Growth chỉ mất 9.81s (Nhanh hơn gấp 5.62 lần)!"
+      }
+    };
+
+    function scrollToRace() {
+      const el = document.getElementById('sectionSpeedRace');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function resetRaceView() {
+      if (raceInterval) clearInterval(raceInterval);
+      raceRunning = false;
+      const btn = document.getElementById('btnStartRace');
+      if (btn) btn.disabled = false;
+      document.getElementById('fpgrowthTimer').textContent = '0.00s';
+      document.getElementById('aprioriTimer').textContent = '0.00s';
+      document.getElementById('fpgrowthBar').style.width = '0%';
+      document.getElementById('aprioriBar').style.width = '0%';
+      document.getElementById('fpgrowthStatus').textContent = 'Sẵn sàng';
+      document.getElementById('aprioriStatus').textContent = 'Sẵn sàng';
+      document.getElementById('fpgrowthSteps').innerHTML = '<div class="text-slate-400">→ Nhấn "Bắt Đầu Đua" để xem tiến trình thực thi trực tiếp...</div>';
+      document.getElementById('aprioriSteps').innerHTML = '<div class="text-slate-400">→ Nhấn "Bắt Đầu Đua" để xem tiến trình thực thi trực tiếp...</div>';
+      document.getElementById('raceResultBox').classList.add('hidden');
+    }
+
+    function startLiveRace() {
+      if (raceRunning) return;
+      resetRaceView();
+      raceRunning = true;
+      document.getElementById('btnStartRace').disabled = true;
+
+      const supportKey = document.getElementById('raceSupportSelect').value;
+      const data = BENCHMARK_DATA[supportKey] || BENCHMARK_DATA["0.01"];
+      
+      const targetFp = data.fpgrowth_time;
+      const targetAp = data.apriori_time;
+
+      // Scale thời lượng hoạt họa trên màn hình (~3s đến 7s) để xem mượt mà, nhưng đồng hồ đếm chuẩn thời gian thực nghiệm
+      const maxRealTime = Math.max(targetFp, targetAp);
+      const displayDurationSec = maxRealTime > 15 ? 7.0 : (maxRealTime > 5 ? 4.5 : 3.0);
+      
+      const startTime = performance.now();
+      document.getElementById('fpgrowthStatus').innerHTML = '<span class="text-amber-400 font-bold animate-pulse">⚡ Đang chạy...</span>';
+      document.getElementById('aprioriStatus').innerHTML = '<span class="text-indigo-400 font-bold animate-pulse">🔍 Đang chạy...</span>';
+
+      let fpDone = false;
+      let apDone = false;
+
+      raceInterval = setInterval(() => {
+        const elapsed = (performance.now() - startTime) / 1000;
+        const progress = Math.min(1.0, elapsed / displayDurationSec);
+
+        // Đồng hồ đếm thời gian
+        const currentFpTime = Math.min(targetFp, (elapsed / (displayDurationSec * (targetFp / maxRealTime))) * targetFp);
+        const currentApTime = Math.min(targetAp, (elapsed / (displayDurationSec * (targetAp / maxRealTime))) * targetAp);
+
+        // Cập nhật FP-Growth
+        const fpProgress = Math.min(1.0, currentFpTime / targetFp);
+        document.getElementById('fpgrowthTimer').textContent = currentFpTime.toFixed(2) + 's';
+        document.getElementById('fpgrowthBar').style.width = (fpProgress * 100) + '%';
+
+        if (fpProgress < 0.35) {
+          document.getElementById('fpgrowthSteps').innerHTML = `
+            <div class="text-amber-400 font-bold">Pha 1: Quét CSDL lần 1</div>
+            <div>→ Đếm tần suất 150 mục và lọc các mục đạt ngưỡng support</div>
+          `;
+        } else if (fpProgress < 0.75) {
+          document.getElementById('fpgrowthSteps').innerHTML = `
+            <div class="text-amber-400 font-bold">Pha 2: Quét CSDL lần 2</div>
+            <div>→ Dựng cây FP-Tree nén hoàn chỉnh trong RAM (12.851 đơn)</div>
+          `;
+        } else if (fpProgress < 1.0) {
+          document.getElementById('fpgrowthSteps').innerHTML = `
+            <div class="text-amber-400 font-bold">Pha 3: Khai phá đệ quy (DFS)</div>
+            <div>→ Tách cây mẫu có điều kiện, không sinh ứng viên Ck</div>
+          `;
+        } else if (!fpDone) {
+          fpDone = true;
+          document.getElementById('fpgrowthStatus').innerHTML = '<span class="text-amber-400 font-bold">🏆 VỀ ĐÍCH!</span>';
+          document.getElementById('fpgrowthTimer').textContent = targetFp.toFixed(2) + 's';
+          document.getElementById('fpgrowthSteps').innerHTML = `
+            <div class="text-emerald-400 font-bold">✓ HOÀN THÀNH XUẤT SẮC!</div>
+            <div>→ Thời gian: <strong>${targetFp.toFixed(2)}s</strong> | Tập phổ biến: <strong>${data.itemsets.toLocaleString()}</strong></div>
+          `;
+        }
+
+        // Cập nhật Apriori
+        const apProgress = Math.min(1.0, currentApTime / targetAp);
+        document.getElementById('aprioriTimer').textContent = currentApTime.toFixed(2) + 's';
+        document.getElementById('aprioriBar').style.width = (apProgress * 100) + '%';
+
+        if (apProgress < 0.25) {
+          document.getElementById('aprioriSteps').innerHTML = `
+            <div class="text-indigo-400 font-bold">Vòng 1: Quét lọc L1</div>
+            <div>→ Quét 12.851 dòng CSDL lần 1 (150 mục đơn)</div>
+          `;
+        } else if (apProgress < 0.55) {
+          document.getElementById('aprioriSteps').innerHTML = `
+            <div class="text-indigo-400 font-bold">Vòng 2: Ghép đôi C2 (${supportKey === '0.005' ? '11.175 cặp' : 'hàng nghìn cặp'})</div>
+            <div>→ Quét lại toàn bộ 12.851 dòng lần 2 đếm tần suất</div>
+          `;
+        } else if (apProgress < 0.85) {
+          document.getElementById('aprioriSteps').innerHTML = `
+            <div class="text-indigo-400 font-bold">Vòng 3+: Sinh C3, C4...</div>
+            <div>→ Tập ứng viên bùng nổ, tiếp tục quét CSDL nhiều lần</div>
+          `;
+        } else if (progress >= 1.0) {
+          apDone = true;
+          document.getElementById('aprioriStatus').innerHTML = '<span class="text-slate-400 font-bold">🏁 Về đích</span>';
+          document.getElementById('aprioriTimer').textContent = targetAp.toFixed(2) + 's';
+          document.getElementById('aprioriSteps').innerHTML = `
+            <div class="text-indigo-400 font-bold">✓ ĐÃ HOÀN THÀNH!</div>
+            <div>→ Thời gian: <strong>${targetAp.toFixed(2)}s</strong> (Chậm do nhiều vòng quét CSDL)</div>
+          `;
+        }
+
+        // Kết thúc
+        if (progress >= 1.0) {
+          clearInterval(raceInterval);
+          raceRunning = false;
+          document.getElementById('btnStartRace').disabled = false;
+
+          const resultBox = document.getElementById('raceResultBox');
+          resultBox.classList.remove('hidden');
+
+          if (targetFp < targetAp) {
+            const speedupX = (targetAp / targetFp).toFixed(2);
+            document.getElementById('raceWinnerText').innerHTML = `⚡ FP-Growth thắng áp đảo! Nhanh hơn <span class="text-amber-400 font-black">${speedupX} lần</span> so với Apriori!`;
+          } else {
+            document.getElementById('raceWinnerText').innerHTML = `Cả 2 thuật toán hoàn thành nhanh chóng ở mức Support cao!`;
+          }
+          document.getElementById('raceSpeedupText').textContent = data.note;
+          document.getElementById('raceStatRules').textContent = `Tập phổ biến: ${data.itemsets.toLocaleString()}`;
+          document.getElementById('raceStatSets').textContent = `Số luật sinh ra: ${data.rules.toLocaleString()}`;
+        }
+      }, 50);
     }
 
     // Khởi tạo ban đầu khi tải trang
