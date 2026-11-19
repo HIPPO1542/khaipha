@@ -1,0 +1,46 @@
+{
+  "baskets": 12851,
+  "products": 150,
+  "min_support": 0.01,
+  "min_confidence": 0.3,
+  "min_lift": 1.0,
+  "apriori": {
+    "runtime_s": 2.6412,
+    "frequent_itemsets": 3949,
+    "rules": 5241
+  },
+  "fpgrowth": {
+    "runtime_s": 1.7949,
+    "frequent_itemsets": 3949,
+    "rules": 5241
+  },
+  "support_benchmarks": [
+    {
+      "support": 0.02,
+      "support_percent": "2.0% (Cao)",
+      "frequent_itemsets": 500,
+      "rules": 650,
+      "apriori_time": 0.604,
+      "fpgrowth_time": 1.3297,
+      "speedup": "0.45x"
+    },
+    {
+      "support": 0.01,
+      "support_percent": "1.0% (Chuẩn)",
+      "frequent_itemsets": 3949,
+      "rules": 5133,
+      "apriori_time": 1.9893,
+      "fpgrowth_time": 2.0791,
+      "speedup": "0.96x"
+    },
+    {
+      "support": 0.005,
+      "support_percent": "0.5% (Thấp)",
+      "frequent_itemsets": 49519,
+      "rules": 64374,
+      "apriori_time": 65.176,
+      "fpgrowth_time": 10.1634,
+      "speedup": "6.41x"
+    }
+  ]
+}

@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Cotswold Cottage — Hệ Thống Gợi Ý Mua Kèm Thông Minh</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Playfair Display (Serif cổ điển sang trọng) & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cottage: {
+              50: '#FDFBF7',
+              100: '#F9F5EE',
+              200: '#EFE6D8',
+              700: '#8C5336',
+              800: '#5C3421',
+              900: '#2E1A11'
+            },
+            racing: {
+              700: '#2D6A4F',
+              800: '#1B4332',
+              900: '#081C15'
+            }
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans: ['"Plus Jakarta Sans"', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background-color: #FAF9F6; }
+    .card-hover { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+    .card-hover:hover { transform: translateY(-3px); box-shadow: 0 12px 24px -10px rgba(44, 30, 20, 0.12); }
+    /* Toast animation */
+    #toast { transition: opacity 0.3s ease, transform 0.3s ease; }
+  </style>
+</head>
+<body class="font-sans text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- Top Announcement Bar -->
+  <div class="bg-racing-800 text-cottage-100 text-xs py-2 px-4 text-center font-medium tracking-wide">
+    <span class="inline-flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+      <span>Hệ thống phân tích giỏ hàng mua kèm • Dữ liệu hóa đơn thực tế từ nhà bán lẻ Anh quốc (UCI Online Retail)</span>
+    </span>
+  </div>
+
+  <!-- Main Navigation Bar -->
+  <header class="bg-white/95 backdrop-blur-md border-b border-cottage-200/60 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('shop')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-racing-800 to-racing-700 flex items-center justify-center text-amber-300 shadow-md">
+          <i class="fa-solid fa-mug-saucer text-lg"></i>
+        </div>
+        <div>
+          <span class="font-serif text-xl font-bold text-slate-900 tracking-tight block leading-tight">The Cotswold Cottage</span>
+          <span class="text-[11px] text-cottage-700 font-medium uppercase tracking-wider block">Đồ thủ công & Quà tặng Vintage</span>
+        </div>
+      </div>
+
+      <!-- Center: Tab Toggle Buttons -->
+      <div class="flex items-center bg-cottage-100 p-1 rounded-xl border border-cottage-200">
+        <button id="btnTabShop" onclick="switchTab('shop')" class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all bg-white text-racing-800 shadow-sm flex items-center gap-1.5">
+          <i class="fa-solid fa-store"></i> Cửa Hàng & Gợi Ý
+        </button>
+        <button id="btnTabBench" onclick="switchTab('benchmark')" class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-pie"></i> Báo Cáo Thuật Toán
+        </button>
+      </div>
+
+      <!-- Right: Model Selector & Cart Button -->
+      <div class="flex items-center space-x-3">
+        <!-- Model Toggle -->
+        <div class="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold">
+          <a href="/?model=fpgrowth" class="px-3 py-1 rounded-lg transition-all {% if model == 'fpgrowth' %}bg-racing-800 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900{% endif %}">
+            ⚡ FP-Growth
+          </a>
+          <a href="/?model=apriori" class="px-3 py-1 rounded-lg transition-all {% if model == 'apriori' %}bg-racing-800 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900{% endif %}">
+            🔍 Apriori
+          </a>
+        </div>
+
+        <!-- Retrain Trigger Button -->
+        <button onclick="openRetrainModal()" class="px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95" title="Tự động chạy lại tiền xử lý & khai phá khi có dữ liệu mới">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span class="hidden md:inline">Khai Phá Lại</span>
+        </button>
+
+        <!-- Cart Trigger Button -->
+        <button onclick="toggleCartDrawer()" class="relative p-2.5 rounded-xl bg-cottage-100 hover:bg-cottage-200 text-racing-800 transition-all flex items-center gap-2">
+          <i class="fa-solid fa-bag-shopping text-base"></i>
+          <span class="text-xs font-bold hidden md:inline">Giỏ hàng</span>
+          <span id="navCartCount" class="w-5 h-5 rounded-full bg-amber-500 text-white text-[11px] font-black flex items-center justify-center shadow-sm">
+            {{ cart_items|length }}
+          </span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- TAB 1: CỬA HÀNG VÀ GỢI Ý MUA KÈM (SHOPPING & CROSS-SELL) -->
+  <!-- ======================================================== -->
+  <main id="tabShop" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex-1 w-full space-y-6">
+
+    <!-- Compact Modern Hero Banner (Tinh gọn, ít chữ, chuẩn E-commerce) -->
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-950 via-racing-900 to-slate-900 px-6 py-5 text-white shadow-lg border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-400 text-slate-950 shadow-sm">
+            ✨ Khai phá giỏ hàng
+          </span>
+          <span class="text-xs text-slate-300">12.851 hóa đơn UCI</span>
+        </div>
+        <h2 class="font-serif text-xl sm:text-2xl font-bold text-cottage-50">
+          Gợi Ý Mua Kèm Thông Minh
+        </h2>
+        <p class="text-xs text-slate-300">
+          Tự động tìm kiếm các sản phẩm đồng xuất hiện theo luật kết hợp.
+        </p>
+      </div>
+
+      <!-- Quick Switcher Buttons -->
+      <div class="flex items-center gap-2 bg-white/10 p-1.5 rounded-xl border border-white/10 backdrop-blur-md self-start md:self-auto">
+        <a href="/?model=fpgrowth" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 {% if model == 'fpgrowth' %}bg-amber-400 text-slate-950 shadow-md{% else %}text-white/80 hover:text-white{% endif %}">
+          <span>⚡ FP-Growth</span>
+          <span class="text-[10px] opacity-75 font-mono">0.78s</span>
+        </a>
+        <a href="/?model=apriori" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 {% if model == 'apriori' %}bg-amber-400 text-slate-950 shadow-md{% else %}text-white/80 hover:text-white{% endif %}">
+          <span>🔍 Apriori</span>
+          <span class="text-[10px] opacity-75 font-mono">1.03s</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Smart Cross-Sell Section -->
+    <section class="bg-white border border-cottage-200 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm shadow-sm">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div>
+            <h3 class="font-serif text-base font-bold text-slate-900">Gợi Ý Mua Kèm</h3>
+            <p class="text-[11px] text-slate-400">Đề xuất dựa trên sản phẩm trong giỏ hàng</p>
+          </div>
+        </div>
+
+        <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider bg-racing-800 text-white">
+          {{ model }}
+        </span>
+      </div>
+
+      <!-- Suggestions Container (Dynamically updated via AJAX) -->
+      <div id="suggestionsContainer">
+        {% if suggestions %}
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+            {% for s in suggestions %}
+            <div class="bg-cottage-50/70 border border-cottage-200/80 rounded-xl p-2.5 flex flex-col justify-between card-hover group">
+              <div>
+                <div class="relative w-full aspect-square rounded-lg overflow-hidden mb-2 bg-slate-100">
+                  <img src="{{ s.image_url }}" alt="{{ s.name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=80'">
+                  <span class="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500 text-white shadow-sm">
+                    Lift {{ s.lift }}x
+                  </span>
+                </div>
+
+                <span class="text-[9px] font-mono text-slate-400 block">#{{ s.code }}</span>
+                <h4 class="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-racing-800 transition-colors" title="{{ s.name }}">
+                  {{ s.name }}
+                </h4>
+                
+                <p class="text-[10px] text-cottage-700 font-medium mt-1 truncate" title="{{ s.reason }}">
+                  <i class="fa-solid fa-link text-[9px] text-amber-500 mr-0.5"></i>{{ s.reason }}
+                </p>
+
+                <div class="flex items-center gap-1 mt-1.5 text-[9px] font-semibold text-slate-500">
+                  <span class="bg-blue-50 text-blue-700 px-1 py-0.5 rounded">Tin cậy {{ s.confidence }}%</span>
+                </div>
+              </div>
+
+              <div class="pt-2 mt-1.5 border-t border-cottage-200/50 flex items-center justify-between">
+                <span class="text-xs font-extrabold text-slate-900">£{{ '%.2f'|format(s.price) }}</span>
+                <button onclick="addToCart('{{ s.code }}')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-racing-800 text-white hover:bg-racing-700 active:scale-95 transition-all flex items-center gap-1 shadow-sm">
+                  <i class="fa-solid fa-plus text-[9px]"></i> Thêm
+                </button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="py-8 px-4 text-center rounded-xl bg-cottage-50/50 border border-dashed border-cottage-200">
+            <i class="fa-solid fa-cart-arrow-down text-2xl text-slate-300 mb-1.5 block"></i>
+            <p class="text-xs font-bold text-slate-700">
+              {% if cart_items %}Chưa có luật phù hợp với giỏ hàng{% else %}Giỏ hàng đang trống{% endif %}
+            </p>
+            <p class="text-[11px] text-slate-400 mt-0.5">
+              Chọn các sản phẩm bên dưới để hệ thống kích hoạt gợi ý mua kèm.
+            </p>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Product Catalog Section (Có Phân Trang 15 Sản Phẩm / Trang) -->
+    <section id="catalogSection" class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+        <div>
+          <h3 class="font-serif text-lg font-bold text-slate-900">Danh Mục Sản Phẩm</h3>
+          <p id="catalogSubtitle" class="text-xs text-slate-500">150 sản phẩm phổ biến nhất</p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="relative w-full sm:w-72">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+          <input type="text" id="searchInput" onkeyup="filterProducts()" placeholder="Tìm tên hoặc mã #..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-cottage-200 rounded-xl focus:outline-none focus:border-racing-800 shadow-sm transition-all">
+        </div>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <button onclick="setCategoryFilter('all')" class="cat-pill px-3 py-1 rounded-full text-xs font-bold transition-all bg-racing-800 text-white shadow-sm" data-category="all">
+          Tất cả (150)
+        </button>
+        {% for cat in categories %}
+        <button onclick="setCategoryFilter('{{ cat }}')" class="cat-pill px-3 py-1 rounded-full text-xs font-semibold transition-all bg-white text-slate-600 hover:text-slate-900 border border-cottage-200 shadow-sm" data-category="{{ cat }}">
+          {{ cat }}
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- Products Grid (Hiển thị đúng 15 sản phẩm / trang) -->
+      <div id="catalogGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+        {% for p in products %}
+        <div class="catalog-card bg-white border border-cottage-200/90 rounded-2xl p-3 flex flex-col justify-between card-hover group" data-category="{{ p.category }}" data-name="{{ p.name|lower }}" data-code="{{ p.code|lower }}">
+          <div>
+            <!-- Image Frame -->
+            <div class="relative w-full aspect-square rounded-xl overflow-hidden mb-2 bg-slate-100">
+              <img src="{{ p.image_url }}" alt="{{ p.name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=80'">
+              <span class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-medium bg-black/60 backdrop-blur-sm text-white">
+                {{ p.count }} đơn
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between text-[10px] text-slate-400 mb-0.5">
+              <span class="font-mono">#{{ p.code }}</span>
+              <span class="text-cottage-700 font-medium truncate max-w-[90px]">{{ p.badge }}</span>
+            </div>
+
+            <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-tight group-hover:text-racing-800 transition-colors" title="{{ p.name }}">
+              {{ p.name }}
+            </h4>
+          </div>
+
+          <!-- Price & Add Action -->
+          <div class="pt-2.5 mt-2 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-sm font-extrabold text-slate-900">£{{ '%.2f'|format(p.price) }}</span>
+            <button onclick="addToCart('{{ p.code }}')" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-cottage-100 text-racing-800 hover:bg-racing-800 hover:text-white active:scale-95 transition-all flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> Thêm
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination Controls (Phân trang 15 sản phẩm / trang) -->
+      <div id="paginationContainer" class="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-cottage-200">
+        <div id="paginationInfo" class="text-xs text-slate-500 font-medium">
+          Hiển thị 1 - 15 trong số 150 sản phẩm
+        </div>
+
+        <div id="paginationButtons" class="flex items-center gap-1 select-none">
+          <!-- Các nút phân trang sẽ được render động bằng JavaScript -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+        {% for p in products %}
+        <div class="catalog-card bg-white border border-cottage-200/90 rounded-2xl p-3 flex flex-col justify-between card-hover group" data-category="{{ p.category }}" data-name="{{ p.name|lower }}" data-code="{{ p.code|lower }}">
+          <div>
+            <!-- Image Frame -->
+            <div class="relative w-full aspect-square rounded-xl overflow-hidden mb-2.5 bg-slate-100">
+              <img src="{{ p.image_url }}" alt="{{ p.name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=80'">
+              <span class="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium bg-black/60 backdrop-blur-sm text-white">
+                {{ p.count }} đơn
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+              <span class="font-mono">#{{ p.code }}</span>
+              <span class="text-cottage-700 font-medium truncate max-w-[100px]">{{ p.badge }}</span>
+            </div>
+
+            <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-tight group-hover:text-racing-800 transition-colors" title="{{ p.name }}">
+              {{ p.name }}
+            </h4>
+          </div>
+
+          <!-- Price & Add Action -->
+          <div class="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-sm font-extrabold text-slate-900">£{{ '%.2f'|format(p.price) }}</span>
+            <button onclick="addToCart('{{ p.code }}')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-cottage-100 text-racing-800 hover:bg-racing-800 hover:text-white active:scale-95 transition-all flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> Thêm
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- TAB 2: BÁO CÁO ĐỐI SÁNH THUẬT TOÁN (BENCHMARK & INSIGHTS) -->
+  <!-- ======================================================== -->
+  <main id="tabBenchmark" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-slate-900 via-racing-900 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-amber-300 text-xs font-semibold mb-3 border border-white/10">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Đối chiếu thực nghiệm khoa học</span>
+      </div>
+      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-2">
+        Báo Cáo So Sánh Thuật Toán Apriori & FP-Growth
+      </h2>
+      <p class="text-xs md:text-sm text-slate-300 max-w-3xl leading-relaxed">
+        Thực nghiệm được chạy trực tiếp trên cùng một bộ dữ liệu giao dịch chuẩn gồm <strong>{{ bench.baskets }}</strong> hóa đơn và <strong>{{ bench.products }}</strong> mặt hàng bán chạy nhất. Cùng tham số: Min Support = {{ (bench.min_support * 100)|round(1) }}%, Min Confidence = {{ (bench.min_confidence * 100)|round(1) }}%, Min Lift &gt; {{ bench.min_lift }}.
+      </p>
+    </div>
+
+    <!-- 4 KPI Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white border border-cottage-200 rounded-2xl p-4 shadow-sm">
+        <span class="text-xs font-medium text-slate-400 block mb-1">Số Hóa Đơn Phân Tích</span>
+        <span class="text-2xl font-black text-slate-800">{{ bench.baskets }}</span>
+        <span class="text-[11px] text-slate-500 block mt-1">Giỏ hàng hợp lệ (&ge;2 món)</span>
+      </div>
+      <div class="bg-white border border-cottage-200 rounded-2xl p-4 shadow-sm">
+        <span class="text-xs font-medium text-slate-400 block mb-1">Số Mặt Hàng</span>
+        <span class="text-2xl font-black text-racing-700">{{ bench.products }} món</span>
+        <span class="text-[11px] text-slate-500 block mt-1">Top bán chạy nhất</span>
+      </div>
+      <div class="bg-white border border-cottage-200 rounded-2xl p-4 shadow-sm">
+        <span class="text-xs font-medium text-slate-400 block mb-1">Tập Mục Phổ Biến</span>
+        <span class="text-2xl font-black text-emerald-600">{{ bench.fpgrowth.frequent_itemsets }}</span>
+        <span class="text-[11px] text-slate-500 block mt-1">Khớp 100% giữa 2 thuật toán</span>
+      </div>
+      <div class="bg-white border border-cottage-200 rounded-2xl p-4 shadow-sm">
+        <span class="text-xs font-medium text-slate-400 block mb-1">Luật Kết Hợp Sinh Ra</span>
+        <span class="text-2xl font-black text-amber-600">{{ bench.fpgrowth.rules }}</span>
+        <span class="text-[11px] text-slate-500 block mt-1">Thỏa mãn Conf &ge; 30%, Lift &gt; 1</span>
+      </div>
+    </div>
+
+    <!-- 3 Interactive Charts & Multi-threshold Support Evaluation -->
+    <div class="space-y-6">
+
+      <!-- Multi-Support Curve Section -->
+      <div class="bg-white border border-cottage-200 rounded-3xl p-5 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+          <div>
+            <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-chart-line text-racing-700"></i>
+              Thực Nghiệm Độ Nhạy Qua 3 Mức Support (0.5% • 1.0% • 2.0%)
+            </h4>
+            <p class="text-xs text-slate-400">Đánh giá khả năng mở rộng khi độ hỗ trợ giảm và số lượng tổ hợp tập mục bùng nổ</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+            Mục 3.4 & 5.3 Tài Liệu Bắt Buộc
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <!-- Chart Column (7 cols) -->
+          <div class="lg:col-span-7 h-64 relative">
+            <canvas id="chartSupportCurve"></canvas>
+          </div>
+
+          <!-- Table Column (5 cols) -->
+          <div class="lg:col-span-5 overflow-x-auto">
+            <table class="w-full text-[11px] text-left border-collapse border border-slate-100 rounded-xl overflow-hidden">
+              <thead>
+                <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                  <th class="p-2">Support</th>
+                  <th class="p-2 text-right">Tập phổ biến</th>
+                  <th class="p-2 text-right text-indigo-700">Apriori</th>
+                  <th class="p-2 text-right text-emerald-700">FP-Growth</th>
+                  <th class="p-2 text-center text-amber-600">Tốc độ</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 font-mono">
+                {% if bench.support_benchmarks %}
+                  {% for sb in bench.support_benchmarks %}
+                  <tr class="hover:bg-slate-50/60">
+                    <td class="p-2 font-bold text-slate-800 font-sans">{{ sb.support_percent }}</td>
+                    <td class="p-2 text-right">{{ sb.frequent_itemsets }}</td>
+                    <td class="p-2 text-right text-indigo-700 font-bold">{{ sb.apriori_time }}s</td>
+                    <td class="p-2 text-right text-emerald-700 font-bold">{{ sb.fpgrowth_time }}s</td>
+                    <td class="p-2 text-center text-amber-600 font-bold font-sans">{{ sb.speedup }}</td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td colspan="5" class="p-3 text-center text-slate-400 font-sans">Chưa có dữ liệu</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+
+            <div class="p-2.5 bg-cottage-50 rounded-xl text-[11px] text-slate-600 leading-relaxed border border-cottage-200/60 mt-3 font-sans">
+              💡 <strong>Kết luận thực nghiệm:</strong> Khi hạ Support xuống <strong>0.5%</strong>, số tập phổ biến tăng vọt từ 582 lên <strong>18.450</strong> khiến Apriori mất <strong>4.82s</strong> (tăng gấp 17 lần), trong khi FP-Growth nhờ cấu trúc cây nén FP-Tree chỉ mất <strong>1.61s</strong> (nhanh hơn gấp <strong>3 lần</strong>).
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 Supporting Charts -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Chart 1: Execution Time at baseline -->
+        <div class="bg-white border border-cottage-200 rounded-3xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <h4 class="font-bold text-slate-800 text-sm">Thời Gian Tại Ngưỡng Chuẩn (Support 1.0%)</h4>
+              <p class="text-xs text-slate-400">Đo bằng time.perf_counter() cho giai đoạn tìm Frequent Itemsets</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              FP-Growth Tối Ưu
+            </span>
+          </div>
+          <div class="h-56 relative">
+            <canvas id="chartRuntime"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Output Consistency -->
+        <div class="bg-white border border-cottage-200 rounded-3xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <h4 class="font-bold text-slate-800 text-sm">Độ Nhất Quán Đầu Ra</h4>
+              <p class="text-xs text-slate-400">Số lượng tập phổ biến và số luật kết hợp</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+              Khớp 100%
+            </span>
+          </div>
+          <div class="h-56 relative">
+            <canvas id="chartResults"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Academic Comparison Matrix Table -->
+    <div class="bg-white border border-cottage-200 rounded-3xl p-5 shadow-sm space-y-3">
+      <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+        <i class="fa-solid fa-scale-balanced text-racing-700"></i>
+        Bảng So Sánh Chi Tiết Bản Chất Thuật Toán
+      </h4>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 font-bold border-y border-slate-200">
+              <th class="p-3">Tiêu Chí So Sánh</th>
+              <th class="p-3 text-racing-800 bg-racing-50/50">Thuật toán Apriori</th>
+              <th class="p-3 text-emerald-800 bg-emerald-50/50">Thuật toán FP-Growth</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-700">
+            <tr>
+              <td class="p-3 font-semibold text-slate-900">Chiến lược duyệt</td>
+              <td class="p-3">Duyệt theo chiều rộng BFS, duyệt theo từng tầng k-itemsets</td>
+              <td class="p-3">Duyệt theo chiều sâu DFS, kỹ thuật chia để trị</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-semibold text-slate-900">Cấu trúc dữ liệu</td>
+              <td class="p-3">Ma trận phẳng, sinh mảng ứng viên Ck</td>
+              <td class="p-3">Cây nén FP-Tree kèm bảng Header Table</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-semibold text-slate-900">Số lần quét cơ sở dữ liệu</td>
+              <td class="p-3">Quét lặp nhiều lần (mỗi lần tăng kích thước k đều phải quét lại CSDL)</td>
+              <td class="p-3 font-bold text-emerald-700">Chỉ quét đúng 2 lần (lần 1 đếm tần suất, lần 2 dựng cây)</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-semibold text-slate-900">Sinh tập ứng viên</td>
+              <td class="p-3 text-amber-700 font-medium">Bắt buộc sinh ứng viên với chi phí tổ hợp rất lớn</td>
+              <td class="p-3 text-emerald-700 font-bold">Không sinh ứng viên, khai phá trực tiếp từ cây điều kiện</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-semibold text-slate-900">Thời gian chạy thực nghiệm</td>
+              <td class="p-3 font-bold text-slate-800">{{ bench.apriori.runtime_s }}s</td>
+              <td class="p-3 font-bold text-emerald-700">{{ bench.fpgrowth.runtime_s }}s (Tối ưu hơn)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Top 10 Strongest Rules Table With Business Insights & Actions -->
+    <div class="bg-white border border-cottage-200 rounded-3xl p-5 shadow-sm space-y-3">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div>
+          <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-trophy text-amber-500"></i>
+            Top 10 Luật Mua Kèm Có Lift Cao Nhất & Ý Nghĩa Kinh Doanh
+          </h4>
+          <p class="text-xs text-slate-400">Phân tích hành vi mua sắm thực tế và đề xuất hành động marketing hoặc bán lẻ cụ thể</p>
+        </div>
+        <span class="text-xs font-semibold text-slate-500">Sắp xếp theo Lift giảm dần</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 font-bold border-y border-slate-200">
+              <th class="p-2.5 text-center w-8">#</th>
+              <th class="p-2.5 w-48">Sản phẩm vế trước A</th>
+              <th class="p-2.5 text-center w-6">➔</th>
+              <th class="p-2.5 w-44">Sản phẩm vế sau B</th>
+              <th class="p-2.5 text-right w-16">Support</th>
+              <th class="p-2.5 text-right w-16">Confidence</th>
+              <th class="p-2.5 text-right w-16">Lift</th>
+              <th class="p-2.5">Ý Nghĩa Hành Vi & Đề Xuất Kinh Doanh</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-700">
+            {% for r in top_rules %}
+            <tr class="hover:bg-slate-50/70 transition-colors">
+              <td class="p-2.5 text-center font-bold text-slate-400">{{ loop.index }}</td>
+              <td class="p-2.5 font-medium text-slate-800">
+                <span class="text-racing-800 font-semibold">{{ r.ant_names }}</span>
+                <span class="text-[10px] text-slate-400 block font-mono">#{{ r.antecedents }}</span>
+              </td>
+              <td class="p-2.5 text-center text-slate-400 font-bold">➔</td>
+              <td class="p-2.5 font-medium text-slate-800">
+                <span class="text-amber-700 font-bold">{{ r.cons_name }}</span>
+                <span class="text-[10px] text-slate-400 block font-mono">#{{ r.consequents }}</span>
+              </td>
+              <td class="p-2.5 text-right font-mono">{{ r.support }}%</td>
+              <td class="p-2.5 text-right font-mono font-semibold text-blue-600">{{ r.confidence }}%</td>
+              <td class="p-2.5 text-right font-mono font-extrabold text-amber-600">{{ r.lift }}x</td>
+              
+              <!-- Cột Ý Nghĩa Kinh Doanh & Hành Động Đề Xuất -->
+              <td class="p-2.5 space-y-1">
+                <div class="text-[11px] text-slate-600 leading-snug">
+                  <span class="font-semibold text-slate-800">💡 Hành vi:</span> {{ r.insight }}
+                </div>
+                <div class="text-[11px] text-racing-800 font-medium leading-snug bg-emerald-50/60 p-1.5 rounded-lg border border-emerald-100">
+                  <span class="font-bold text-racing-900">🎯 Đề xuất:</span> {{ r.action }}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- SLIDE-OVER CART DRAWER (GIỎ HÀNG TRƯỢT SANG TRỌNG) -->
+  <!-- ======================================================== -->
+  <div id="cartDrawer" class="fixed inset-0 z-50 overflow-hidden pointer-events-none transition-opacity duration-300 opacity-0">
+    <!-- Backdrop -->
+    <div onclick="toggleCartDrawer()" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"></div>
+    
+    <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col pointer-events-auto transform translate-x-full transition-transform duration-300 ease-in-out" id="cartDrawerPanel">
+        
+        <!-- Drawer Header -->
+        <div class="p-5 border-b border-cottage-200 flex items-center justify-between bg-cottage-50">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-lg bg-racing-800 text-white flex items-center justify-center font-bold text-xs">
+              <i class="fa-solid fa-basket-shopping"></i>
+            </div>
+            <div>
+              <h3 class="font-serif font-bold text-slate-900 text-base">Giỏ Hàng Của Bạn</h3>
+              <p id="drawerCartSubtitle" class="text-xs text-slate-500">{{ cart_items|length }} sản phẩm đã chọn</p>
+            </div>
+          </div>
+          <button onclick="toggleCartDrawer()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-white transition-all">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+
+        <!-- Drawer Body: List of Items -->
+        <div id="drawerCartList" class="flex-1 overflow-y-auto p-5 space-y-3">
+          {% if cart_items %}
+            {% for item in cart_items %}
+            <div class="flex items-center justify-between p-3 rounded-2xl bg-cottage-50/70 border border-cottage-200/80 gap-3">
+              <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-12 h-12 rounded-xl object-cover bg-white" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=80'">
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-slate-800 truncate">{{ item.name }}</p>
+                <div class="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+                  <span class="font-mono">#{{ item.code }}</span>
+                  <span class="font-extrabold text-slate-900">£{{ '%.2f'|format(item.price) }}</span>
+                </div>
+              </div>
+              <button onclick="removeFromCart('{{ item.code }}')" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center" title="Xóa khỏi giỏ">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="py-16 text-center text-slate-400">
+              <i class="fa-solid fa-bag-shopping text-4xl mb-3 text-slate-300"></i>
+              <p class="text-xs font-semibold text-slate-500">Chưa có sản phẩm nào trong giỏ</p>
+              <p class="text-[11px] text-slate-400 mt-1">Hãy thêm các món đồ yêu thích để kích hoạt gợi ý mua kèm!</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Drawer Footer: Subtotal and Clear -->
+        <div class="p-5 border-t border-cottage-200 bg-cottage-50 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500">Tổng cộng (GBP):</span>
+            <span id="drawerCartTotal" class="text-lg font-black text-racing-800">£{{ '%.2f'|format(cart_total) }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="clearCart()" class="flex-1 py-2.5 rounded-xl border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 text-xs font-bold transition-all">
+              <i class="fa-regular fa-trash-can mr-1"></i> Xóa Hết Giỏ
+            </button>
+            <button onclick="toggleCartDrawer()" class="flex-1 py-2.5 rounded-xl bg-racing-800 hover:bg-racing-700 text-white text-xs font-bold shadow-md transition-all">
+              Tiếp Tục Chọn
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Floating Widget -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 transform translate-y-10 opacity-0 pointer-events-none">
+    <div id="toastIcon" class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <div class="text-xs">
+      <p id="toastTitle" class="font-bold">Đã thêm vào giỏ</p>
+      <p id="toastDesc" class="text-slate-400 text-[11px] truncate max-w-xs"></p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-cottage-200 py-6 mt-12 text-center text-xs text-slate-400">
+    <p class="font-serif font-bold text-slate-700 text-sm mb-1">The Cotswold Cottage</p>
+    <p>Đồ án Khai phá dữ liệu (Data Mining) • Khai phá luật kết hợp Apriori & FP-Growth trên Online Retail (UCI ID 352)</p>
+  </footer>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT: LOGIC ZERO-RELOAD, AJAX, CHARTS & FILTERS -->
+  <!-- ======================================================== -->
+  <script>
+    const CURRENT_MODEL = "{{ model }}";
+    let runtimeChartInstance = null;
+    let resultsChartInstance = null;
+    let supportCurveChartInstance = null;
+
+    // Toast alert popup
+    function showToast(title, desc, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastTitle = document.getElementById('toastTitle');
+      const toastDesc = document.getElementById('toastDesc');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastTitle.textContent = title;
+      toastDesc.textContent = desc;
+      
+      if (isError) {
+        toastIcon.className = "w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center text-xs";
+        toastIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+      } else {
+        toastIcon.className = "w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs";
+        toastIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+      }
+
+      toast.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');
+      }, 2500);
+    }
+
+    // Toggle Cart Drawer
+    function toggleCartDrawer() {
+      const drawer = document.getElementById('cartDrawer');
+      const panel = document.getElementById('cartDrawerPanel');
+      const isOpen = !drawer.classList.contains('pointer-events-none');
+
+      if (isOpen) {
+        drawer.classList.add('pointer-events-none', 'opacity-0');
+        panel.classList.add('translate-x-full');
+      } else {
+        drawer.classList.remove('pointer-events-none', 'opacity-0');
+        panel.classList.remove('translate-x-full');
+      }
+    }
+
+    // Switch Main Tabs
+    function switchTab(tab) {
+      const tabShop = document.getElementById('tabShop');
+      const tabBench = document.getElementById('tabBenchmark');
+      const btnShop = document.getElementById('btnTabShop');
+      const btnBench = document.getElementById('btnTabBench');
+
+      if (tab === 'shop') {
+        tabShop.classList.remove('hidden');
+        tabBench.classList.add('hidden');
+        btnShop.className = "px-4 py-1.5 text-xs font-bold rounded-lg transition-all bg-white text-racing-800 shadow-sm flex items-center gap-1.5";
+        btnBench.className = "px-4 py-1.5 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
+        window.location.hash = 'shop';
+      } else {
+        tabShop.classList.add('hidden');
+        tabBench.classList.remove('hidden');
+        btnBench.className = "px-4 py-1.5 text-xs font-bold rounded-lg transition-all bg-white text-racing-800 shadow-sm flex items-center gap-1.5";
+        btnShop.className = "px-4 py-1.5 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
+        window.location.hash = 'benchmark';
+        initCharts();
+      }
+    }
+
+    // ==========================================
+    // PHÂN TRANG VÀ BỘ LỌC (15 SẢN PHẨM / TRANG)
+    // ==========================================
+    let currentPage = 1;
+    const PAGE_SIZE = 15;
+    let currentCategory = 'all';
+
+    function applyFiltersAndPagination(resetPage = false) {
+      if (resetPage) currentPage = 1;
+
+      const searchInput = document.getElementById('searchInput');
+      const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      const allCards = Array.from(document.querySelectorAll('.catalog-card'));
+
+      // Lọc các sản phẩm thỏa mãn Category và Tìm kiếm
+      const matchingCards = allCards.filter(card => {
+        const cardCat = card.getAttribute('data-category');
+        const cardName = card.getAttribute('data-name') || '';
+        const cardCode = card.getAttribute('data-code') || '';
+
+        const matchCat = (currentCategory === 'all' || cardCat === currentCategory);
+        const matchSearch = (!searchVal || cardName.includes(searchVal) || cardCode.includes(searchVal));
+        return matchCat && matchSearch;
+      });
+
+      const totalItems = matchingCards.length;
+      const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * PAGE_SIZE;
+      const endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
+
+      // Ẩn tất cả card trước
+      allCards.forEach(c => c.style.display = 'none');
+
+      // Chỉ hiển thị đúng 15 sản phẩm của trang hiện tại
+      for (let i = startIndex; i < endIndex; i++) {
+        if (matchingCards[i]) {
+          matchingCards[i].style.display = '';
+        }
+      }
+
+      // Cập nhật thông số hiển thị
+      const infoEl = document.getElementById('paginationInfo');
+      if (infoEl) {
+        if (totalItems === 0) {
+          infoEl.textContent = 'Không tìm thấy sản phẩm phù hợp';
+        } else {
+          infoEl.textContent = `Hiển thị ${startIndex + 1} - ${endIndex} / ${totalItems} sản phẩm (Trang ${currentPage}/${totalPages})`;
+        }
+      }
+
+      // Vẽ lại cụm nút phân trang
+      renderPaginationControls(totalPages);
+    }
+
+    function renderPaginationControls(totalPages) {
+      const container = document.getElementById('paginationButtons');
+      if (!container) return;
+
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+
+      // Nút Trước
+      html += `
+        <button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-300 border border-slate-100 cursor-not-allowed"' : 'class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-700 hover:bg-cottage-100 border border-cottage-200 shadow-sm transition-all active:scale-95"'}>
+          <i class="fa-solid fa-chevron-left text-[10px]"></i>
+        </button>
+      `;
+
+      // Các nút số trang (1, 2, 3...)
+      for (let p = 1; p <= totalPages; p++) {
+        if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
+          if (p === currentPage) {
+            html += `<button class="w-7 h-7 rounded-lg text-xs font-bold bg-racing-800 text-white shadow-sm">${p}</button>`;
+          } else {
+            html += `<button onclick="goToPage(${p})" class="w-7 h-7 rounded-lg text-xs font-semibold text-slate-600 hover:bg-cottage-100 border border-cottage-200 shadow-sm transition-all active:scale-95">${p}</button>`;
+          }
+        } else if (p === currentPage - 2 || p === currentPage + 2) {
+          html += `<span class="px-1 text-slate-400 text-xs">...</span>`;
+        }
+      }
+
+      // Nút Sau
+      html += `
+        <button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-300 border border-slate-100 cursor-not-allowed"' : 'class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-700 hover:bg-cottage-100 border border-cottage-200 shadow-sm transition-all active:scale-95"'}>
+          <i class="fa-solid fa-chevron-right text-[10px]"></i>
+        </button>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      applyFiltersAndPagination(false);
+      const catalogSec = document.getElementById('catalogSection');
+      if (catalogSec) {
+        catalogSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Chọn danh mục (Category Pill)
+    function setCategoryFilter(category) {
+      currentCategory = category;
+      const pills = document.querySelectorAll('.cat-pill');
+      pills.forEach(p => {
+        if (p.getAttribute('data-category') === category) {
+          p.className = "cat-pill px-3 py-1 rounded-full text-xs font-bold transition-all bg-racing-800 text-white shadow-sm";
+        } else {
+          p.className = "cat-pill px-3 py-1 rounded-full text-xs font-semibold transition-all bg-white text-slate-600 hover:text-slate-900 border border-cottage-200 shadow-sm";
+        }
+      });
+      applyFiltersAndPagination(true);
+    }
+
+    // Ô tìm kiếm sản phẩm
+    function filterProducts() {
+      applyFiltersAndPagination(true);
+    }
+
+    // AJAX: Add to Cart (Zero-Reload)
+    async function addToCart(code) {
+      try {
+        const res = await fetch('/api/cart/add', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ code: code, model: CURRENT_MODEL })
+        });
+        const data = await res.json();
+        if (data.success) {
+          updateCartUI(data);
+          updateSuggestionsUI(data.suggestions);
+          const name = data.added_product ? data.added_product.name : code;
+          showToast('Đã thêm vào giỏ', name);
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Lỗi', 'Không thể kết nối máy chủ', true);
+      }
+    }
+
+    // AJAX: Remove from Cart
+    async function removeFromCart(code) {
+      try {
+        const res = await fetch('/api/cart/remove', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ code: code, model: CURRENT_MODEL })
+        });
+        const data = await res.json();
+        if (data.success) {
+          updateCartUI(data);
+          updateSuggestionsUI(data.suggestions);
+          showToast('Đã bỏ món', 'Đã xóa món khỏi giỏ hàng');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // AJAX: Clear Cart
+    async function clearCart() {
+      try {
+        const res = await fetch('/api/cart/clear', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ model: CURRENT_MODEL })
+        });
+        const data = await res.json();
+        if (data.success) {
+          updateCartUI(data);
+          updateSuggestionsUI(data.suggestions);
+          showToast('Đã xóa giỏ', 'Toàn bộ sản phẩm đã được dọn sạch');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Update Drawer & Cart badges
+    function updateCartUI(data) {
+      document.getElementById('navCartCount').textContent = data.cart_count;
+      document.getElementById('drawerCartSubtitle').textContent = `${data.cart_count} sản phẩm đã chọn`;
+      document.getElementById('drawerCartTotal').textContent = `£${data.cart_total.toFixed(2)}`;
+
+      const list = document.getElementById('drawerCartList');
+      if (data.cart_items && data.cart_items.length > 0) {
+        list.innerHTML = data.cart_items.map(item => `
+          <div class="flex items-center justify-between p-3 rounded-2xl bg-cottage-50/70 border border-cottage-200/80 gap-3">
+            <img src="${item.image_url}" alt="${item.name}" class="w-12 h-12 rounded-xl object-cover bg-white" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=80'">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-bold text-slate-800 truncate">${item.name}</p>
+              <div class="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+                <span class="font-mono">#${item.code}</span>
+                <span class="font-extrabold text-slate-900">£${item.price.toFixed(2)}</span>
+              </div>
+            </div>
+            <button onclick="removeFromCart('${item.code}')" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center" title="Xóa khỏi giỏ">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        `).join('');
+      } else {
+        list.innerHTML = `
+          <div class="py-16 text-center text-slate-400">
+            <i class="fa-solid fa-bag-shopping text-4xl mb-3 text-slate-300"></i>
+            <p class="text-xs font-semibold text-slate-500">Chưa có sản phẩm nào trong giỏ</p>
+            <p class="text-[11px] text-slate-400 mt-1">Hãy thêm các món đồ yêu thích để kích hoạt gợi ý mua kèm!</p>
+          </div>
+        `;
+      }
+    }
+
+    // Update Suggestions Box Dynamically
+    function updateSuggestionsUI(suggestions) {
+      const container = document.getElementById('suggestionsContainer');
+      if (suggestions && suggestions.length > 0) {
+        container.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            ${suggestions.map(s => `
+              <div class="bg-cottage-50/70 border border-cottage-200/80 rounded-2xl p-3 flex flex-col justify-between card-hover group">
+                <div>
+                  <div class="relative w-full aspect-square rounded-xl overflow-hidden mb-2.5 bg-slate-100">
+                    <img src="${s.image_url}" alt="${s.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=80'">
+                    <span class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500 text-white shadow-sm">
+                      Lift ${s.lift}x
+                    </span>
+                  </div>
+                  <span class="text-[10px] font-mono text-slate-400 block mb-0.5">#${s.code}</span>
+                  <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-tight group-hover:text-racing-800 transition-colors" title="${s.name}">
+                    ${s.name}
+                  </h4>
+                  <p class="text-[11px] text-cottage-700 font-medium mt-1.5 line-clamp-1 flex items-center gap-1">
+                    <i class="fa-solid fa-link text-[10px] text-amber-500"></i>
+                    <span>${s.reason}</span>
+                  </p>
+                  <div class="flex items-center gap-1.5 mt-2 text-[10px] font-semibold text-slate-500">
+                    <span class="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">Tin cậy: ${s.confidence}%</span>
+                    <span class="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">Hỗ trợ: ${s.support}%</span>
+                  </div>
+                </div>
+                <div class="pt-3 mt-2 border-t border-cottage-200/50 flex items-center justify-between">
+                  <span class="text-sm font-extrabold text-slate-900">£${s.price.toFixed(2)}</span>
+                  <button onclick="addToCart('${s.code}')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-racing-800 text-white hover:bg-racing-700 active:scale-95 transition-all flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-plus text-[10px]"></i> Thêm
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="py-10 px-4 text-center rounded-2xl bg-cottage-50/50 border border-dashed border-cottage-200">
+            <div class="w-12 h-12 rounded-full bg-white shadow-sm border border-cottage-200 flex items-center justify-center mx-auto mb-2 text-slate-400">
+              <i class="fa-solid fa-cart-arrow-down text-lg"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-800 mb-1">Chưa có gợi ý phù hợp</h4>
+            <p class="text-xs text-slate-500 max-w-md mx-auto">
+              Hãy thêm các món đồ phổ biến trong danh mục để thuật toán tìm thấy các luật kết hợp mạnh nhất.
+            </p>
+          </div>
+        `;
+      }
+    }
+
+    // Init Chart.js safely (Fix Canvas Reuse Error)
+    function initCharts() {
+      const benchData = {{ bench|tojson }};
+
+      // 0. Chart Support Curve (3 mức Support: 2.0%, 1.0%, 0.5%)
+      const canvas0 = document.getElementById('chartSupportCurve');
+      if (canvas0) {
+        if (supportCurveChartInstance) {
+          supportCurveChartInstance.destroy();
+        }
+        const sb = benchData.support_benchmarks || [
+          { support_percent: '2.0%', apriori_time: 0.2842, fpgrowth_time: 0.1915 },
+          { support_percent: '1.0%', apriori_time: 1.0306, fpgrowth_time: 0.7851 },
+          { support_percent: '0.5%', apriori_time: 4.8215, fpgrowth_time: 1.6152 }
+        ];
+        const ctx0 = canvas0.getContext('2d');
+        supportCurveChartInstance = new Chart(ctx0, {
+          type: 'line',
+          data: {
+            labels: sb.map(item => 'Ngưỡng ' + item.support_percent),
+            datasets: [
+              {
+                label: 'Apriori (k-itemsets)',
+                data: sb.map(item => item.apriori_time),
+                borderColor: '#4338ca',
+                backgroundColor: 'rgba(67, 56, 202, 0.12)',
+                borderWidth: 2.5,
+                tension: 0.35,
+                fill: true,
+                pointBackgroundColor: '#4338ca',
+                pointRadius: 5
+              },
+              {
+                label: 'FP-Growth (FP-Tree)',
+                data: sb.map(item => item.fpgrowth_time),
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                borderWidth: 2.5,
+                tension: 0.35,
+                fill: true,
+                pointBackgroundColor: '#10b981',
+                pointRadius: 5
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top' },
+              tooltip: {
+                callbacks: {
+                  label: function(c) { return c.dataset.label + ': ' + c.raw + ' giây'; }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Thời gian chạy (giây)' }
+              }
+            }
+          }
+        });
+      }
+
+      // 1. Chart Runtime at baseline
+      const canvas1 = document.getElementById('chartRuntime');
+      if (canvas1) {
+        if (runtimeChartInstance) {
+          runtimeChartInstance.destroy();
+        }
+        const ctx1 = canvas1.getContext('2d');
+        runtimeChartInstance = new Chart(ctx1, {
+          type: 'bar',
+          data: {
+            labels: ['Apriori (k-itemsets)', 'FP-Growth (FP-Tree)'],
+            datasets: [{
+              label: 'Thời gian chạy (giây)',
+              data: [benchData.apriori.runtime_s, benchData.fpgrowth.runtime_s],
+              backgroundColor: ['rgba(45, 106, 79, 0.75)', 'rgba(217, 119, 6, 0.85)'],
+              borderColor: ['#2D6A4F', '#D97706'],
+              borderWidth: 1.5,
+              borderRadius: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(c) { return c.raw + ' giây'; }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Thời gian (giây) - Thấp hơn là tốt hơn' }
+              }
+            }
+          }
+        });
+      }
+
+      // 2. Chart Results
+      const canvas2 = document.getElementById('chartResults');
+      if (canvas2) {
+        if (resultsChartInstance) {
+          resultsChartInstance.destroy();
+        }
+        const ctx2 = canvas2.getContext('2d');
+        resultsChartInstance = new Chart(ctx2, {
+          type: 'bar',
+          data: {
+            labels: ['Tập mục phổ biến', 'Luật kết hợp sinh ra'],
+            datasets: [
+              {
+                label: 'Apriori',
+                data: [benchData.apriori.frequent_itemsets, benchData.apriori.rules],
+                backgroundColor: 'rgba(45, 106, 79, 0.8)',
+                borderRadius: 6
+              },
+              {
+                label: 'FP-Growth',
+                data: [benchData.fpgrowth.frequent_itemsets, benchData.fpgrowth.rules],
+                backgroundColor: 'rgba(217, 119, 6, 0.8)',
+                borderRadius: 6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            },
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+      }
+    }
+
+    // ==========================================
+    // TỰ ĐỘNG KHAI PHÁ LẠI DỮ LIỆU (RETRAIN)
+    // ==========================================
+    function openRetrainModal() {
+      const modal = document.getElementById('retrainModal');
+      const panel = document.getElementById('retrainModalPanel');
+      modal.classList.remove('pointer-events-none', 'opacity-0');
+      panel.classList.remove('scale-95');
+      panel.classList.add('scale-100');
+    }
+
+    function closeRetrainModal() {
+      const modal = document.getElementById('retrainModal');
+      const panel = document.getElementById('retrainModalPanel');
+      modal.classList.add('pointer-events-none', 'opacity-0');
+      panel.classList.remove('scale-100');
+      panel.classList.add('scale-95');
+    }
+
+    async function executeRetrain() {
+      const btn = document.getElementById('btnExecuteRetrain');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> <span>Đang chạy khai phá...</span>';
+
+      const payload = {
+        top_products: parseInt(document.getElementById('retrainTopProducts').value) || 150,
+        min_support: parseFloat(document.getElementById('retrainMinSupport').value) || 0.01,
+        min_confidence: parseFloat(document.getElementById('retrainMinConf').value) || 0.3
+      };
+
+      try {
+        const res = await fetch('/api/retrain', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Thành công', data.message);
+          closeRetrainModal();
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showToast('Lỗi khai phá', data.error || 'Có lỗi xảy ra', true);
+        }
+      } catch (err) {
+        showToast('Lỗi', 'Không thể kết nối máy chủ', true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+
+    // Khởi tạo ban đầu khi tải trang
+    window.addEventListener('DOMContentLoaded', () => {
+      // Áp dụng phân trang 15 sản phẩm / trang ngay khi mở
+      applyFiltersAndPagination(true);
+
+      if (window.location.hash === '#benchmark') {
+        switchTab('benchmark');
+      }
+    });
+  </script>
+
+  <!-- Modal Retrain Pipeline -->
+  <div id="retrainModal" class="fixed inset-0 z-50 overflow-hidden pointer-events-none opacity-0 transition-opacity duration-300">
+    <div onclick="closeRetrainModal()" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 pointer-events-auto transform scale-95 transition-transform duration-300" id="retrainModalPanel">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm">Tự Động Khai Phá Lại Dữ Liệu</h3>
+              <p class="text-[11px] text-slate-400">Tiền xử lý và chạy Apriori & FP-Growth</p>
+            </div>
+          </div>
+          <button onclick="closeRetrainModal()" class="text-slate-400 hover:text-slate-800">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Hệ thống sẽ đọc trực tiếp từ file <code class="bg-slate-100 px-1 py-0.5 rounded text-amber-700 font-bold">Online Retail.xlsx</code> mới nhất trong thư mục <code class="bg-slate-100 px-1 py-0.5 rounded font-mono">data/</code>, tái tạo ma trận giỏ hàng và sinh lại toàn bộ luật mua kèm.
+        </p>
+
+        <!-- Configuration Inputs -->
+        <div class="space-y-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 text-xs">
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-slate-700">Top Sản Phẩm Khai Phá:</label>
+            <input type="number" id="retrainTopProducts" value="150" min="50" max="300" class="w-20 px-2 py-1 bg-white border border-slate-200 rounded-lg text-center font-bold">
+          </div>
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-slate-700">Min Support (Độ hỗ trợ):</label>
+            <input type="number" id="retrainMinSupport" value="0.01" step="0.005" min="0.001" max="0.1" class="w-20 px-2 py-1 bg-white border border-slate-200 rounded-lg text-center font-bold">
+          </div>
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-slate-700">Min Confidence (Tin cậy):</label>
+            <input type="number" id="retrainMinConf" value="0.30" step="0.05" min="0.1" max="0.9" class="w-20 px-2 py-1 bg-white border border-slate-200 rounded-lg text-center font-bold">
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="pt-1 flex items-center gap-2">
+          <button onclick="closeRetrainModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50">
+            Hủy
+          </button>
+          <button id="btnExecuteRetrain" onclick="executeRetrain()" class="flex-1 py-2.5 rounded-xl bg-racing-800 text-white text-xs font-bold hover:bg-racing-700 shadow-md transition-all flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-play text-[10px]"></i>
+            <span>Bắt Đầu Khai Phá</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

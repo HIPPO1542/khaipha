@@ -1,0 +1,15 @@
+DATASET: Online Retail (UCI Machine Learning Repository, ID 352)
+DATASET PAGE: https://archive.ics.uci.edu/dataset/352/online+retail
+OFFICIAL ZIP: https://archive.ics.uci.edu/static/public/352/online+retail.zip
+FILE: Online Retail.xlsx
+SIZE: 22.6 MB (according to UCI website)
+INSTANCES: 541909 rows
+LICENSE: CC BY 4.0
+CITATION: Chen, D. (2015). Online Retail [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5BW33
+
+CÁCH LẤY DATA:
+1. Mở URL ở trên, chọn Download.
+2. Giải nén file ZIP, copy Online Retail.xlsx vào thư mục data/ của dự án.
+3. Hoặc chạy "python download_uci.py" trên máy có kết nối Internet.
+
+LƯU Ý: File Excel gốc không được đính kèm trong gói khởi động. Tất cả kết quả khai phá cần chạy trên dữ liệu gốc này.
